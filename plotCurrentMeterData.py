@@ -23,27 +23,33 @@ Currently supported:
 - Midas ECM
 """
 import os
+
+import numpy
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import circmean, circstd
 
 # USER INPUT
-in_dir = r'/plotCurrentMeterData/in'  # dir with split raw files
-out_dir = r'/plotCurrentMeterData/out'  # dir to ouput joined/cleaned files
+in_dir = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\2AF East KWI02'  # dir with split raw files
+out_dir = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out'  # dir to ouput joined/cleaned files
 os.chdir(in_dir)  # change working dir
-projectname = 'Test Marseille Port'  # name of your project for output .csv i.e. 2AF East E14 B01.csv
+projectname = '2AF East KWI02'  # name of your project for output .csv i.e. 2AF East E14 B01.csv
 currentmeter_model = 1  # 0 = Nortek, 1 = Midas ECM
+liftup = 0.5            # limit of lift up during individual CPT pushes in meters (i.e. 0.5m should cut data reliable)
 
 a = {'current_meter_station': {
     # USER INPUT
     # FORMAT
     # 'Station name':     {'file': 'filename.vpd', 'start_line': 69, 'stop_line': 420},
-    'Test Marseille Port': {'file': 'FILE_010 MARSEILLE PORT.vpd', 'start_line': 55, 'stop_line': 55},
+    # 'Test Marseille Port': {'file': 'FILE_010 MARSEILLE PORT.vpd', 'start_line': 55, 'stop_line': 55},
     # 'S3-SP-CP01':     {'file': 'CPT_0101.dat', 'start_line': 174, 'stop_line': 191},
     # 'S2-SP-CP01A':    {'file': 'CPT_0101.dat', 'start_line': 134, 'stop_line': 141},
     # 'S2-SP-CP01B':    {'file': 'CPT_01A01.dat', 'start_line': 27, 'stop_line': 43},
     # 'S2-SP-CP02':     {'file': 'CPT_0201.dat', 'start_line': 47, 'stop_line': 66},
+    # 'KWI02-G-CP01':     {'file': 'FILE_173 VALEPORT 2AF_E14_KWI02_G_CP01.vpd', 'start_line': 55, 'stop_line': 3168},
+    # 'KWI02-G-CP01':     {'file': 'FILE_173 VALEPORT 2AF_E14_KWI02_G_CP01.vpd', 'start_line': 55, 'stop_line': 3168},
+    'KWI02-G-CP02':     {'file': 'FILE_171 VALEPORT 2AF_E14_KWI02_G_CP02.vpd', 'start_line': 55, 'stop_line': 2145},
 
 }
 }
@@ -64,8 +70,9 @@ for items in a.values():
         for file in f:
             if file.endswith(value['file']):
 
-                # Define file header
+                # Nortek Aquadopp
                 if currentmeter_model == 0:
+                    # Define file header
                     header = ['Month', 'Day', 'Year', 'Hour', 'Minute', 'Second', 'Errorcode', 'Statuscode',
                               'Velocity(Beam1|X|East)',
                               'Velocity(Beam2|Y|North)', 'Velocity(Beam3|Z|Up)', 'Amplitude(Beam1)', 'Amplitude(Beam2)',
@@ -75,41 +82,62 @@ for items in a.values():
                               'Direction']
                     df = pd.read_csv(file, delim_whitespace=True, header=None, names=header)
 
+                    # TODO this have to go
+                    start_push = value['start_line'] - 1
+                    stop_push = value['stop_line']
+
+                    # DATE/TIME
+                    df['Date/Time'] = pd.to_datetime(df[['Year', 'Month', 'Day', 'Hour', 'Minute', 'Second']])
+                    date = df['Date/Time'].dt.date.iloc[start_push]
+                    time = df['Date/Time'].dt.time.iloc[start_push]
+                    df = df.set_index('Date/Time')
+
+                    df['Diff'] = df['Depth'].diff()     # TODO testen testen testen
+
+                # Midas ECM
                 elif currentmeter_model == 1:
+                    # Define file header
                     header = ['Date', 'Time', 'Depth', 'Pressure', 'Temperature', 'Velocity X', 'Velocity Y',
                               'Direction',
                               'Conductivity', 'Salinity', 'Density', 'Sound Velocity']
                     df = pd.read_csv(file, delim_whitespace=True, header=None, names=header, skiprows=54)
 
-                if currentmeter_model == 0:
-                    start_push = value['start_line'] - 1
-                    stop_push = value['stop_line']
-                elif currentmeter_model == 1:
-                    start_push = value['start_line'] - 55       # Offset start/stop lines by skiprows value
+                    # TODO this has to go
+                    start_push = value['start_line'] - 55  # Offset start/stop lines by skiprows value
                     stop_push = value['stop_line'] - 54
 
-                station = key
-                file_name = os.path.basename(file)
-
-                # DATE/TIME
-                if currentmeter_model == 0:
-                    day = str(df['Day'].iloc[start_push])
-                    month = str(df['Month'].iloc[start_push])
-                    year = str(df['Year'].iloc[start_push])
-                    date = '/'.join([day, month, year])
-
-                    hour = str(df['Hour'].iloc[start_push]).zfill(2)
-                    minute = str(df['Minute'].iloc[start_push]).zfill(2)
-                    second = str(df['Second'].iloc[start_push]).zfill(2)
-                    time = ':'.join([hour, minute, second])
-                elif currentmeter_model == 1:
+                    # DATE/TIME
                     date = df['Date'].iloc[start_push]
-                    time = df['Time'].iloc[start_push]  # todo format time
-                    print(date, time)
+                    time = df['Time'].iloc[start_push]
+                    df['Date/Time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
+                    df = df.set_index('Date/Time')
 
                     # Calculate velocity vector
                     df['Speed'] = np.hypot(df['Velocity Y'].iloc[start_push:stop_push],
                                            df['Velocity X'].iloc[start_push:stop_push])
+
+                    df['Diff'] = df['Depth'].diff()     # TODO comment
+
+                station = key
+                file_name = os.path.basename(file)
+
+                # FIND INDIVIDUAL PUSHES
+                df['OnSeabed'] = df.loc[(df['Diff'] < 0.1) & (df['Diff'] > -0.1) & (df['Depth'] > df['Depth'].max() - 0.5)]['Depth']
+
+                df['ID'] = df['OnSeabed'].apply(lambda x: False if (np.isnan(x)) else True)
+                df['Push'] = df['ID'].ne(df['ID'].shift(1)).cumsum()
+                df['Push'] = np.where(np.isnan(df['OnSeabed']), 0, df['Push'])
+
+                # SET PUSH PLOT
+                push_plot = plt.figure()
+
+                df['Depth'].plot()
+                df['Diff'].plot(secondary_y=True)
+                df['OnSeabed'].plot(style='o')
+                df['Push'].plot(style='o')
+                plt.gca.invert_yaxis()
+                plt.show()
+
 
                 depth = int(round(np.mean(df['Depth'].iloc[start_push:stop_push]), 0))      # Mean depth
                 temp_c = round(np.mean(df['Temperature'].iloc[start_push:stop_push]), 1)    # Mean temperature
@@ -125,7 +153,7 @@ for items in a.values():
                 # VALUES FOR .csv
                 work.append([station, file_name, date, time, depth, temp_c, avg_spe, avg_dir, sv])
 
-                # SET PLOT
+                # SET POLAR PLOT
                 fig = plt.figure(figsize=(8, 8))
                 ax = fig.add_subplot(111, projection='polar')
                 ax.set_theta_direction('clockwise')
@@ -152,6 +180,7 @@ for items in a.values():
                 # OUTPUT
                 print('-' * 69)
                 print('Station:\t\t%s' % station)
+                print('Date/Time:\t\t%s %s' % (date, time))
                 print('Mean direction:\t%.0f%s' % (avg_dir, degreechar))
                 print('Mean velocity:\t%.2f m/s' % avg_spe)
                 print('Std. dev:\t\t%.2f%s' % (np.rad2deg(std_dir), degreechar))
