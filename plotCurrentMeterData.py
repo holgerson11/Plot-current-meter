@@ -33,16 +33,18 @@ import numpy as np
 from scipy.stats import circmean, circstd
 
 # USER INPUT
-in_dir = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\CURRENTMETER test'  # dir with split raw files
-out_dir = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out'  # dir to ouput joined/cleaned files
-os.chdir(in_dir)  # change working dir
-projectname = '2AF East KWI02'  # name of your project for output .csv i.e. 2AF East E14 B01.csv
-currentmeter_model = 1  # 0 = Nortek, 1 = Midas ECM
-# todo set cut off values
-liftup = 0.3            # limit of lift up during individual CPT pushes in meters (i.e. 0.5m should cut data reliable)
+in_dir = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\tester'
+out_dir = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out'
+
+projectname = '2AF East KWI02'  # name of your project for output i.e. 2AF East E14 B01.csv
+currentmeter_model = 1          # 0 = Nortek, 1 = Midas ECM
+
+max_depth_delta = 0.3            # Values shallower than maximum depth of file by this value will be used
+max_depth_noise = 0.15           # Cutoff value for noise in depth on seabed
 
 # GET FILES
 f = []
+os.chdir(in_dir)                # change working dir
 for (dirpath, dirnames, filenames) in os.walk(in_dir):
     for file in filenames:
         if file.endswith('.dat') and currentmeter_model == 0:
@@ -52,11 +54,7 @@ for (dirpath, dirnames, filenames) in os.walk(in_dir):
 
 work = []
 
-# for items in a.values():
-#     for key, value in items.items():
 for file in f:
-    # if file.endswith(value['file']):
-
     # Nortek Aquadopp
     if currentmeter_model == 0:
         # Define file header
@@ -84,21 +82,24 @@ for file in f:
         # DATE/TIME setup
         df['Date/Time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
 
-    # Setup Date/Time as index
+    # Set Date/Time as index
     df = df.set_index('Date/Time')
 
     # FIND INDIVIDUAL PUSHES
-    df['Diff'] = df['Depth'].diff()     # TODO comment
-    df['OnSeabed'] = df.loc[(df['Diff'] < 0.1) & (df['Diff'] > -0.1) & (df['Depth'] > df['Depth'].max() - 0.3)]['Depth']
+    df['Diff'] = df['Depth'].diff()     # TODO explain why this works -.-
+    df['OnSeabed'] = df.loc[(df['Diff'] < max_depth_noise) &
+                            (df['Diff'] > -max_depth_noise) &
+                            (df['Depth'] > df['Depth'].max() - max_depth_delta)]['Depth']
 
     df['ID'] = df['OnSeabed'].apply(lambda x: False if (np.isnan(x)) else True)
     df['Push'] = df['ID'].ne(df['ID'].shift(1)).cumsum()
     df['Push'] = np.where(np.isnan(df['OnSeabed']), 0, df['Push'])
 
     df_pushes = df.where(df['Push'] != 0).groupby('Push')
-    # todo multiple pushes check
+
     push_counter = 0
     station_char = ''
+    # todo get file for manual start stop change
     for name, group in df_pushes:
         start_push = pd.to_datetime(group['Date'].iloc[0] + ' ' + group['Time'].iloc[0])
         stop_push = pd.to_datetime(group['Date'].iloc[-1] + ' ' + group['Time'].iloc[-1])
@@ -106,6 +107,7 @@ for file in f:
             station_char = ascii_uppercase[push_counter - 1]
         station = os.path.basename(file).split('.')[0] + station_char
         push_counter += 1
+        # todo write to start stop file
 
         file_name = os.path.basename(file)
 
@@ -113,7 +115,8 @@ for file in f:
         # todo fix plot and export
         fig = plt.figure(figsize=(12, 8))
         ax = fig.add_subplot(111)
-
+        # todo labels
+        # todo format x axis date label
         ax.plot(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Depth'])
         ax2 = ax.twinx()
         ax2.scatter(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Push'], color='orange')  # todo area behind push with label
