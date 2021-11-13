@@ -119,40 +119,6 @@ for file in f:
 
         file_name = os.path.basename(file)
 
-        # SET PUSH PLOT
-        # SET PUSH PLOT
-        # todo one debug plot per station vs. push
-        # todo fix plot and export
-        fig = plt.figure(figsize=(12, 8))
-        ax = fig.add_subplot(111)
-        ax.plot(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Depth'])
-        ax2 = ax.twinx()
-        ax.fill_between(pd.to_datetime(group['Date'] + ' ' + group['Time']), group['Depth'], 0, color='lightblue')
-
-        ax2.plot(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Diff'], color='green')  # todo maybe subplot for diff plot
-
-        annotation_x = pd.to_datetime(group['Date'] + ' ' + group['Time']).index.max() - \
-                       (pd.Timedelta(pd.to_datetime(group['Date'] + ' ' + group['Time']).index.max() -
-                                     pd.to_datetime(group['Date'] + ' ' + group['Time']).index.min()) / 2)
-        annotation_y = (group['Depth'].max() / 2)
-
-        ax.annotate(station, xy=(annotation_x, annotation_y), ha='center')
-
-        # Y AXIS
-        ax.set_ylabel('Depth [m]')
-        ax2.set_ylabel('%s Depth [m]' % u'\u0394')      # delta char
-
-        # X AXIS
-        dateformat = mdates.DateFormatter('%d.%m.%Y\n%H:%M:%S')
-        ax.invert_yaxis()
-        ax.xaxis.set_major_formatter(dateformat)
-        # ax.set_xlabel('Time Day HH:MM:SS')
-        # fig.autofmt_xdate()       # auto rotate label
-
-        plot_save = os.path.join(out_dir, station + '_data.png')
-        plt.savefig(plot_save)
-        plt.show()
-
         # Calculate velocity vector for MIDAS ECM
         if currentmeter_model == 1:
             df['Speed'] = np.hypot(df['Velocity Y'].loc[start_push:stop_push], df['Velocity X'].loc[start_push:stop_push])
@@ -206,6 +172,50 @@ for file in f:
         print('Mean direction:\t%.0f%s' % (avg_dir, degreechar))
         print('Mean velocity:\t%.2f m/s' % avg_spe)
         print('Std. dev:\t\t%.2f%s' % (np.rad2deg(std_dir), degreechar))
+
+
+    # SET PUSH PLOT
+    # todo one debug plot per station vs. push
+    # todo fix plot and export
+    fig = plt.figure(figsize=(12, 8))
+    ax = fig.add_subplot(111)
+    ax.plot(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Depth'])
+    ax2 = ax.twinx()
+
+    ax2.plot(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Diff'], color='green')  # todo maybe subplot for diff plot
+
+    push_counter = 0
+    station_char = ''
+
+    for name, group in df_pushes:
+        if len(df_pushes.groups) > 1 and push_counter > 0:      # todo station name generation as function
+            station_char = ascii_uppercase[push_counter - 1]
+        station = os.path.basename(file).split('.')[0] + station_char
+
+        ax.fill_between(pd.to_datetime(group['Date'] + ' ' + group['Time']), group['Depth'], 0, color='lightblue')
+        annotation_x = pd.to_datetime(group['Date'] + ' ' + group['Time']).index.max() - \
+                       (pd.Timedelta(pd.to_datetime(group['Date'] + ' ' + group['Time']).index.max() -
+                                     pd.to_datetime(group['Date'] + ' ' + group['Time']).index.min()) / 2)
+        annotation_y = (group['Depth'].max() / 2)
+
+        ax.annotate(station, xy=(annotation_x, annotation_y), ha='center', color='royalblue')
+        push_counter += 1
+
+    # Y AXIS
+    ax.set_ylabel('Depth [m]')
+    ax2.set_ylabel('%s Depth [m]' % u'\u0394')      # delta char
+
+    # X AXIS
+    dateformat = mdates.DateFormatter('%d.%m.%Y\n%H:%M:%S')
+    ax.invert_yaxis()
+    ax.xaxis.set_major_formatter(dateformat)
+    # ax.set_xlabel('Time Day HH:MM:SS')
+    # fig.autofmt_xdate()       # auto rotate label
+
+    plot_save = os.path.join(out_dir, station + '_data.png')
+    plt.savefig(plot_save)
+    plt.show()
+
 
 # EXPORT summary.csv
 summary_cols = ['Station Name', 'File No.', 'Date', 'Time', 'Depth', 'Temperature', 'Speed', 'Direction',
