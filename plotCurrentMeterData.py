@@ -43,6 +43,8 @@ currentmeter_model = 1          # 0 = Nortek, 1 = Midas ECM
 max_depth_delta = 0.3            # Values shallower than maximum depth of file by this value will be used
 max_depth_noise = 0.15           # Cutoff value for noise in depth on seabed
 
+debug_file = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out\2AF East KWI02_debug table.csv'
+
 # GET FILES
 f = []
 os.chdir(in_dir)                # change working dir
@@ -53,7 +55,8 @@ for (dirpath, dirnames, filenames) in os.walk(in_dir):
         elif file.endswith('.vpd') and currentmeter_model == 1:
             f.append(os.path.join(dirpath, file))
 
-work = []
+summary_table = []
+debug_table = []
 
 for file in f:
     # Nortek Aquadopp
@@ -86,6 +89,8 @@ for file in f:
     # Set Date/Time as index
     df = df.set_index('Date/Time')
 
+    # todo read debug file here for manual start stop change
+
     # FIND INDIVIDUAL PUSHES
     df['Diff'] = df['Depth'].diff()     # TODO explain why this works -.-
     df['OnSeabed'] = df.loc[(df['Diff'] < max_depth_noise) &
@@ -100,38 +105,49 @@ for file in f:
 
     push_counter = 0
     station_char = ''
-    # todo get file for manual start stop change
+
     for name, group in df_pushes:
         start_push = pd.to_datetime(group['Date'].iloc[0] + ' ' + group['Time'].iloc[0])
         stop_push = pd.to_datetime(group['Date'].iloc[-1] + ' ' + group['Time'].iloc[-1])
         if len(df_pushes.groups) > 1 and push_counter > 0:
             station_char = ascii_uppercase[push_counter - 1]
         station = os.path.basename(file).split('.')[0] + station_char
+
+        # DEBUG FILE LINE
+        debug_table.append([station, start_push, stop_push])    # todo add raw file line numbers maybe??
         push_counter += 1
-        # todo write to start stop file
 
         file_name = os.path.basename(file)
 
         # SET PUSH PLOT
+        # SET PUSH PLOT
+        # todo one debug plot per station vs. push
         # todo fix plot and export
         fig = plt.figure(figsize=(12, 8))
         ax = fig.add_subplot(111)
-        # todo labels
-        # todo format x axis date label
-        # todo reverse y axis
         ax.plot(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Depth'])
         ax2 = ax.twinx()
-        # ax2.scatter(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Push'], color='orange')  # todo area behind push with label
-        ax2.plot(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Diff'], color='green')  # todo area behind push with label
         ax.fill_between(pd.to_datetime(group['Date'] + ' ' + group['Time']), group['Depth'], 0, color='lightblue')
 
+        ax2.plot(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Diff'], color='green')  # todo maybe subplot for diff plot
+
+        annotation_x = pd.to_datetime(group['Date'] + ' ' + group['Time']).index.max() - \
+                       (pd.Timedelta(pd.to_datetime(group['Date'] + ' ' + group['Time']).index.max() -
+                                     pd.to_datetime(group['Date'] + ' ' + group['Time']).index.min()) / 2)
+        annotation_y = (group['Depth'].max() / 2)
+
+        ax.annotate(station, xy=(annotation_x, annotation_y), ha='center')
+
+        # Y AXIS
         ax.set_ylabel('Depth [m]')
-        deltachar = u'\u0394'
-        ax2.set_ylabel('%s Depth [m]' % deltachar)
-        ax.set_xlabel('Time Day HH:MM:SS')
+        ax2.set_ylabel('%s Depth [m]' % u'\u0394')      # delta char
+
+        # X AXIS
         dateformat = mdates.DateFormatter('%d.%m.%Y\n%H:%M:%S')
+        ax.invert_yaxis()
         ax.xaxis.set_major_formatter(dateformat)
-        # fig.autofmt_xdate()
+        # ax.set_xlabel('Time Day HH:MM:SS')
+        # fig.autofmt_xdate()       # auto rotate label
 
         plot_save = os.path.join(out_dir, station + '_data.png')
         plt.savefig(plot_save)
@@ -157,7 +173,7 @@ for file in f:
         time = df['Time'].loc[start_push]
 
         # VALUES FOR .csv
-        work.append([station, file_name, date, time, depth, temp_c, avg_spe, avg_dir, sv])
+        summary_table.append([station, file_name, date, time, depth, temp_c, avg_spe, avg_dir, sv])
 
         # SET POLAR PLOT
         fig = plt.figure(figsize=(8, 8))
@@ -191,11 +207,16 @@ for file in f:
         print('Mean velocity:\t%.2f m/s' % avg_spe)
         print('Std. dev:\t\t%.2f%s' % (np.rad2deg(std_dir), degreechar))
 
-# EXPORT .csv
-results_cols = ['Station Name', 'File No.', 'Date', 'Time', 'Depth', 'Temperature', 'Speed', 'Direction',
+# EXPORT summary.csv
+summary_cols = ['Station Name', 'File No.', 'Date', 'Time', 'Depth', 'Temperature', 'Speed', 'Direction',
                 'Sound velocity']
-results = pd.DataFrame(work, index=None, columns=results_cols)
-results.to_csv(os.path.join(out_dir, projectname + '.csv'), index=False)
+summary = pd.DataFrame(summary_table, index=None, columns=summary_cols)
+summary.to_csv(os.path.join(out_dir, projectname + '.csv'), index=False)
+
+# EXPORT summary.csv
+debug_cols = ['Station Name', 'Start push', 'Stop push']
+debug = pd.DataFrame(debug_table, index=None, columns=debug_cols)
+debug.to_csv(os.path.join(out_dir, projectname + '_debug table.csv'), index=False)
 
 # OUTPUT
 print('-' * 69)
