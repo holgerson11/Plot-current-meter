@@ -29,6 +29,7 @@ import os
 from string import ascii_uppercase
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import numpy as np
 from scipy.stats import circmean, circstd
 
@@ -117,14 +118,24 @@ for file in f:
         ax = fig.add_subplot(111)
         # todo labels
         # todo format x axis date label
+        # todo reverse y axis
         ax.plot(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Depth'])
         ax2 = ax.twinx()
-        ax2.scatter(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Push'], color='orange')  # todo area behind push with label
+        # ax2.scatter(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Push'], color='orange')  # todo area behind push with label
         ax2.plot(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Diff'], color='green')  # todo area behind push with label
-        ax.scatter(pd.to_datetime(group['Date'] + ' ' + group['Time']), group['OnSeabed'], color='red')
+        ax.fill_between(pd.to_datetime(group['Date'] + ' ' + group['Time']), group['Depth'], 0, color='lightblue')
+
+        ax.set_ylabel('Depth [m]')
+        deltachar = u'\u0394'
+        ax2.set_ylabel('%s Depth [m]' % deltachar)
+        ax.set_xlabel('Time Day HH:MM:SS')
+        dateformat = mdates.DateFormatter('%d.%m.%Y\n%H:%M:%S')
+        ax.xaxis.set_major_formatter(dateformat)
+        # fig.autofmt_xdate()
+
         plot_save = os.path.join(out_dir, station + '_data.png')
         plt.savefig(plot_save)
-        # plt.show()
+        plt.show()
 
         # Calculate velocity vector for MIDAS ECM
         if currentmeter_model == 1:
