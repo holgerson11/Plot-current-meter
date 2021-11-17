@@ -34,16 +34,16 @@ import numpy as np
 from scipy.stats import circmean, circstd
 
 # USER INPUT
-in_dir = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\tester'
-out_dir = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out'
+in_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\2AF East KWI02'
+out_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out'
 
-projectname = '2AF East KWI02'  # name of your project for output i.e. 2AF East E14 B01.csv
-currentmeter_model = 1          # 0 = Nortek, 1 = Midas ECM
+projectname = '2AFRICA KWI02'  # name of your project for output i.e. 2AF East E14 B01.csv
+currentmeter_model = 1          # 0 = Nortek Aquadopp, 1 = Midas ECM
 
 max_depth_delta = 0.3            # Values shallower than maximum depth of file by this value will be used
 max_depth_noise = 0.15           # Cutoff value for noise in depth on seabed
 
-debug_file = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out\2AF East KWI02_debug table.csv'
+# debug_file = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out\2AF East KWI02_debug table.csv'
 
 # GET FILES
 f = []
@@ -72,8 +72,19 @@ for file in f:
         df = pd.read_csv(file, delim_whitespace=True, header=None, names=header)
 
         # DATE/TIME setup
-        df['Date/Time'] = pd.to_datetime(df[['Year', 'Month', 'Day', 'Hour', 'Minute', 'Second']])
-        df = df.set_index('Date/Time')
+        df['Date/Time'] = pd.to_datetime(df[['Year', 'Month', 'Day', 'Hour', 'Minute', 'Second']], format='%Y-%m-%d% %H:%M:%S.%f')
+        # df['Date/Time'] = df['Date/Time'].dt.strftime('%Y-%m-%d% %H:%M:%S.%f')
+        # df['Date'] = df['Date/Time'].dt.date
+        # df['Time'] = df['Date/Time'].dt.time
+        # df['Date'] = df['Date'].dt.date
+        # df['Date'] = df['Date'].replace('-', r'\\')
+        # df['Time'] = pd.to_datetime(df[['Year', 'Month', 'Day', 'Hour', 'Minute', 'Second']])
+        # df['Time'] = df['Time'].dt.time
+        # df['Date/Time'] = pd.to_datetime(df['Date'].astype(str) + ' ' + df['Time'].astype(str))
+        # df['Date/Time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
+        # print(df['Date'].head())
+        # print(df['Time'].head())
+        # print(df['Date/Time'].head())
 
     # Midas ECM
     elif currentmeter_model == 1:
@@ -87,7 +98,7 @@ for file in f:
         df['Date/Time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
 
     # Set Date/Time as index
-    df = df.set_index('Date/Time')
+    df = df.set_index('Date/Time', drop=False)      # keep Date/Time column and use as index
 
     # todo read debug file here for manual start stop change
 
@@ -107,8 +118,10 @@ for file in f:
     station_char = ''
 
     for name, group in df_pushes:
-        start_push = pd.to_datetime(group['Date'].iloc[0] + ' ' + group['Time'].iloc[0])
-        stop_push = pd.to_datetime(group['Date'].iloc[-1] + ' ' + group['Time'].iloc[-1])
+        # start_push = pd.to_datetime(group['Date'].iloc[0] + ' ' + group['Time'].iloc[0])
+        # stop_push = pd.to_datetime(group['Date'].iloc[-1] + ' ' + group['Time'].iloc[-1])
+        start_push = group['Date/Time'].iloc[0]
+        stop_push = group['Date/Time'].iloc[-1]
         if len(df_pushes.groups) > 1 and push_counter > 0:
             station_char = ascii_uppercase[push_counter - 1]
         station = os.path.basename(file).split('.')[0] + station_char
@@ -135,8 +148,8 @@ for file in f:
         std_dir = circstd(np.deg2rad(df['Direction'].loc[start_push:stop_push]))
 
         # DATE/TIME for .csv
-        date = df['Date'].loc[start_push]
-        time = df['Time'].loc[start_push]
+        date = df['Date/Time'].dt.date.loc[start_push]
+        time = df['Date/Time'].dt.time.loc[start_push]
 
         # VALUES FOR .csv
         summary_table.append([station, file_name, date, time, depth, temp_c, avg_spe, avg_dir, sv])
@@ -161,6 +174,7 @@ for file in f:
         plt.suptitle(station)
         ax.set_title('Mean direction: %.0f%s Mean velocity: %.2f m/s Std. dev: %.2f%s' % (
             avg_dir, degreechar, avg_spe, np.rad2deg(std_dir), degreechar))
+        plt.tight_layout()
         plot_save = os.path.join(out_dir, station + '.png')
         plt.savefig(plot_save)
         # plt.show()
@@ -174,15 +188,14 @@ for file in f:
         print('Std. dev:\t\t%.2f%s' % (np.rad2deg(std_dir), degreechar))
 
 
-    # SET PUSH PLOT
-    # todo one debug plot per station vs. push
+    # DEBUG PLOT
     # todo fix plot and export
     fig = plt.figure(figsize=(12, 8))
     ax = fig.add_subplot(111)
-    ax.plot(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Depth'])
+    ax.plot(df['Date/Time'], df['Depth'])
     ax2 = ax.twinx()
 
-    ax2.plot(pd.to_datetime(df['Date'] + ' ' + df['Time']), df['Diff'], color='green')  # todo maybe subplot for diff plot
+    ax2.plot(df['Date/Time'], df['Diff'], color='green')  # todo maybe subplot for diff plot
 
     push_counter = 0
     station_char = ''
@@ -192,10 +205,9 @@ for file in f:
             station_char = ascii_uppercase[push_counter - 1]
         station = os.path.basename(file).split('.')[0] + station_char
 
-        ax.fill_between(pd.to_datetime(group['Date'] + ' ' + group['Time']), group['Depth'], 0, color='lightblue')
-        annotation_x = pd.to_datetime(group['Date'] + ' ' + group['Time']).index.max() - \
-                       (pd.Timedelta(pd.to_datetime(group['Date'] + ' ' + group['Time']).index.max() -
-                                     pd.to_datetime(group['Date'] + ' ' + group['Time']).index.min()) / 2)
+        ax.fill_between(group['Date/Time'], group['Depth'], 0, color='lightblue')
+        annotation_x = group['Date/Time'].index.max() - \
+                       (pd.Timedelta(group['Date/Time'].index.max() - group['Date/Time'].index.min()) / 2)
         annotation_y = (group['Depth'].max() / 2)
 
         ax.annotate(station, xy=(annotation_x, annotation_y), ha='center', color='royalblue')
@@ -212,10 +224,11 @@ for file in f:
     # ax.set_xlabel('Time Day HH:MM:SS')
     # fig.autofmt_xdate()       # auto rotate label
 
+    plt.suptitle('DEBUG: %s' % file)
     plot_save = os.path.join(out_dir, station + '_data.png')
+    plt.tight_layout()
     plt.savefig(plot_save)
-    plt.show()
-
+    # plt.show()
 
 # EXPORT summary.csv
 summary_cols = ['Station Name', 'File No.', 'Date', 'Time', 'Depth', 'Temperature', 'Speed', 'Direction',
