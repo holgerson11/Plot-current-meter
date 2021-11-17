@@ -29,7 +29,6 @@ import os
 from string import ascii_uppercase
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 import numpy as np
 from scipy.stats import circmean, circstd
 
@@ -73,18 +72,6 @@ for file in f:
 
         # DATE/TIME setup
         df['Date/Time'] = pd.to_datetime(df[['Year', 'Month', 'Day', 'Hour', 'Minute', 'Second']], format='%Y-%m-%d% %H:%M:%S.%f')
-        # df['Date/Time'] = df['Date/Time'].dt.strftime('%Y-%m-%d% %H:%M:%S.%f')
-        # df['Date'] = df['Date/Time'].dt.date
-        # df['Time'] = df['Date/Time'].dt.time
-        # df['Date'] = df['Date'].dt.date
-        # df['Date'] = df['Date'].replace('-', r'\\')
-        # df['Time'] = pd.to_datetime(df[['Year', 'Month', 'Day', 'Hour', 'Minute', 'Second']])
-        # df['Time'] = df['Time'].dt.time
-        # df['Date/Time'] = pd.to_datetime(df['Date'].astype(str) + ' ' + df['Time'].astype(str))
-        # df['Date/Time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
-        # print(df['Date'].head())
-        # print(df['Time'].head())
-        # print(df['Date/Time'].head())
 
     # Midas ECM
     elif currentmeter_model == 1:
@@ -118,8 +105,6 @@ for file in f:
     station_char = ''
 
     for name, group in df_pushes:
-        # start_push = pd.to_datetime(group['Date'].iloc[0] + ' ' + group['Time'].iloc[0])
-        # stop_push = pd.to_datetime(group['Date'].iloc[-1] + ' ' + group['Time'].iloc[-1])
         start_push = group['Date/Time'].iloc[0]
         stop_push = group['Date/Time'].iloc[-1]
         if len(df_pushes.groups) > 1 and push_counter > 0:
@@ -195,7 +180,7 @@ for file in f:
     ax.plot(df['Date/Time'], df['Depth'])
     ax2 = ax.twinx()
 
-    ax2.plot(df['Date/Time'], df['Diff'], color='green')  # todo maybe subplot for diff plot
+    ax2.plot(df['Date/Time'], df['Diff'], color='green')  # todo subplot for diff plot
 
     push_counter = 0
     station_char = ''
@@ -205,13 +190,15 @@ for file in f:
             station_char = ascii_uppercase[push_counter - 1]
         station = os.path.basename(file).split('.')[0] + station_char
 
-        ax.fill_between(group['Date/Time'], group['Depth'], 0, color='lightblue')
+        ax.fill_between(group['Date/Time'], group['Depth'], 0, color='lightblue')   # todo different color for each push
         annotation_x = group['Date/Time'].index.max() - \
                        (pd.Timedelta(group['Date/Time'].index.max() - group['Date/Time'].index.min()) / 2)
         annotation_y = (group['Depth'].max() / 2)
 
-        ax.annotate(station, xy=(annotation_x, annotation_y), ha='center', color='royalblue')
+        ax.annotate(station, xy=(annotation_x, annotation_y), ha='center', color='royalblue')   # todo matching different color
         push_counter += 1
+        # todo add lines and squares for cut off
+        # todo add grid lines
 
     # Y AXIS
     ax.set_ylabel('Depth [m]')
@@ -224,7 +211,7 @@ for file in f:
     # ax.set_xlabel('Time Day HH:MM:SS')
     # fig.autofmt_xdate()       # auto rotate label
 
-    plt.suptitle('DEBUG: %s' % file)
+    plt.suptitle('%s' % file)
     plot_save = os.path.join(out_dir, station + '_data.png')
     plt.tight_layout()
     plt.savefig(plot_save)
