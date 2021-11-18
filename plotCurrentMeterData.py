@@ -1,7 +1,7 @@
 """
 ***************************************************************************
-        Date of creation/change: 2021-11-10
-        Version: 0.3
+        Date of creation/change: 2021-11-17
+        Version: 0.4
         contact editor(s): nilshemme@hotmail.com
 
 ***************************************************************************/
@@ -29,19 +29,22 @@ import os
 from string import ascii_uppercase
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import numpy as np
 from scipy.stats import circmean, circstd
 
 # USER INPUT
-in_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\2AF East KWI02'
-out_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out'
+in_dir = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\2AF East FAW'
+out_dir = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out'
 
-projectname = '2AFRICA KWI02'  # name of your project for output i.e. 2AF East E14 B01.csv
+projectname = '2AFRICA FAW'  # name of your project for output i.e. 2AF East E14 B01.csv
 currentmeter_model = 1          # 0 = Nortek Aquadopp, 1 = Midas ECM
 
+# CUT OFF VALUES (in [m])
 max_depth_delta = 0.3            # Values shallower than maximum depth of file by this value will be used
-max_depth_noise = 0.15           # Cutoff value for noise in depth on seabed
+max_depth_noise = 0.25           # Cutoff value for noise in depth on seabed
 
+# todo add debug mode
 # debug_file = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out\2AF East KWI02_debug table.csv'
 
 # GET FILES
@@ -172,7 +175,6 @@ for file in f:
         print('Mean velocity:\t%.2f m/s' % avg_spe)
         print('Std. dev:\t\t%.2f%s' % (np.rad2deg(std_dir), degreechar))
 
-
     # DEBUG PLOT
     # todo fix plot and export
     fig = plt.figure(figsize=(12, 8))
@@ -214,7 +216,7 @@ for file in f:
     plt.suptitle('%s' % file)
     plot_save = os.path.join(out_dir, station + '_data.png')
     plt.tight_layout()
-    plt.savefig(plot_save)
+    plt.savefig(plot_save)      # todo reset stationname // no A, B etc.
     # plt.show()
 
 # EXPORT summary.csv
