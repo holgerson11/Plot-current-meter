@@ -30,6 +30,7 @@ from string import ascii_uppercase
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.patches as patches
 import numpy as np
 from scipy.stats import circmean, circstd
 
@@ -186,9 +187,10 @@ for file in f:
     # DEBUG PLOT
     # todo fix plot and export
     fig = plt.figure(figsize=(12, 8))
-    ax = fig.add_subplot(111)
+    ax = fig.add_subplot(211)       # 2 row x 1 col grid, position 1
+    ax2 = fig.add_subplot(212)
     ax.plot(df['Date/Time'], df['Depth'])
-    ax2 = ax.twinx()
+    # ax2 = ax.twinx()
 
     ax2.plot(df['Date/Time'], df['Diff'], color='green')  # todo subplot for diff plot
 
