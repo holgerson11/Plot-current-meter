@@ -114,7 +114,7 @@ for file in f:
         stop_push = group['Date/Time'].iloc[-1]
 
         # GET RAW FILE LINE NUMBER
-        start_push_int = df.index.get_loc(start_push) + (line_offset + 1)
+        start_push_int = df.index.get_loc(start_push) + (line_offset + 1)   # todo test for Nortek
         stop_push_int = df.index.get_loc(stop_push) + (line_offset + 1)
 
         # GET STATION NAME
@@ -194,18 +194,19 @@ for file in f:
 
     push_counter = 0
     station_char = ''
+    colors = plt.cm.tab10(np.linspace(0, 1, len(df_pushes)))
 
     for name, group in df_pushes:
         if len(df_pushes.groups) > 1 and push_counter > 0:      # todo station name generation as function
             station_char = ascii_uppercase[push_counter - 1]
         station = os.path.basename(file).split('.')[0] + station_char
 
-        ax.fill_between(group['Date/Time'], group['Depth'], 0, color='lightblue')   # todo different color for each push
+        ax.fill_between(group['Date/Time'], group['Depth'], 0, color=colors[push_counter])
         annotation_x = group['Date/Time'].index.max() - \
                        (pd.Timedelta(group['Date/Time'].index.max() - group['Date/Time'].index.min()) / 2)
         annotation_y = (group['Depth'].max() / 2)
 
-        ax.annotate(station, xy=(annotation_x, annotation_y), ha='center', color='royalblue')   # todo matching different color
+        ax.annotate(station, xy=(annotation_x, annotation_y), ha='center', color='white')
         push_counter += 1
         # todo add lines and squares for cut off
         # todo add grid lines
