@@ -34,8 +34,8 @@ import numpy as np
 from scipy.stats import circmean, circstd
 
 # USER INPUT
-in_dir = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\2AF East FAW'
-out_dir = r'F:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out'
+in_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\tester'
+out_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out'
 
 projectname = '2AFRICA FAW'  # name of your project for output i.e. 2AF East E14 B01.csv
 currentmeter_model = 1          # 0 = Nortek Aquadopp, 1 = Midas ECM
@@ -71,6 +71,7 @@ for file in f:
                   'Roll',
                   'Pressure_dbar', 'Depth', 'Temperature', 'Analoginput1', 'Analoginput2', 'Speed',
                   'Direction']
+        line_offset = 0
         df = pd.read_csv(file, delim_whitespace=True, header=None, names=header)
 
         # DATE/TIME setup
@@ -82,7 +83,8 @@ for file in f:
         header = ['Date', 'Time', 'Depth', 'Pressure', 'Temperature', 'Velocity X', 'Velocity Y',
                   'Direction',
                   'Conductivity', 'Salinity', 'Density', 'Sound Velocity']
-        df = pd.read_csv(file, delim_whitespace=True, header=None, names=header, skiprows=54)
+        line_offset = 54
+        df = pd.read_csv(file, delim_whitespace=True, header=None, names=header, skiprows=line_offset)
 
         # DATE/TIME setup
         df['Date/Time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
@@ -107,15 +109,21 @@ for file in f:
     push_counter = 0
     station_char = ''
 
-    for name, group in df_pushes:
+    for name, group in df_pushes:                           # todo break if more then 27 pushes
         start_push = group['Date/Time'].iloc[0]
         stop_push = group['Date/Time'].iloc[-1]
+
+        # GET RAW FILE LINE NUMBER
+        start_push_int = df.index.get_loc(start_push) + (line_offset + 1)
+        stop_push_int = df.index.get_loc(stop_push) + (line_offset + 1)
+
+        # GET STATION NAME
         if len(df_pushes.groups) > 1 and push_counter > 0:
             station_char = ascii_uppercase[push_counter - 1]
         station = os.path.basename(file).split('.')[0] + station_char
 
         # DEBUG FILE LINE
-        debug_table.append([station, start_push, stop_push])    # todo add raw file line numbers maybe??
+        debug_table.append([station, start_push_int, stop_push_int, start_push, stop_push])
         push_counter += 1
 
         file_name = os.path.basename(file)
@@ -226,7 +234,7 @@ summary = pd.DataFrame(summary_table, index=None, columns=summary_cols)
 summary.to_csv(os.path.join(out_dir, projectname + '.csv'), index=False)
 
 # EXPORT summary.csv
-debug_cols = ['Station Name', 'Start push', 'Stop push']
+debug_cols = ['Station Name', 'Start Line Number', 'Stop Line Number', 'Start push', 'Stop push']
 debug = pd.DataFrame(debug_table, index=None, columns=debug_cols)
 debug.to_csv(os.path.join(out_dir, projectname + '_debug table.csv'), index=False)
 
