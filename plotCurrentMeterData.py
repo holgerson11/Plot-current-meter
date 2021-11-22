@@ -111,79 +111,78 @@ for file in f:
     station_char = ''
 
     for name, group in df_pushes:                           # todo break if more then 27 pushes
-        if len(group) >= min_push_length:
-            start_push = group['Date/Time'].iloc[0]
-            stop_push = group['Date/Time'].iloc[-1]
+        start_push = group['Date/Time'].iloc[0]
+        stop_push = group['Date/Time'].iloc[-1]
 
-            # GET RAW FILE LINE NUMBER
-            start_push_int = df.index.get_loc(start_push) + (line_offset + 1)   # todo test for Nortek
-            stop_push_int = df.index.get_loc(stop_push) + (line_offset + 1)
+        # GET RAW FILE LINE NUMBER
+        start_push_int = df.index.get_loc(start_push) + (line_offset + 1)   # todo test for Nortek
+        stop_push_int = df.index.get_loc(stop_push) + (line_offset + 1)
 
-            # GET STATION NAME
-            if len(df_pushes.groups) > 1 and push_counter > 0:
-                station_char = ascii_uppercase[push_counter - 1]
-            station = os.path.basename(file).split('.')[0] + station_char
+        # GET STATION NAME
+        if len(df_pushes.groups) > 1 and push_counter > 0:
+            station_char = ascii_uppercase[push_counter - 1]
+        station = os.path.basename(file).split('.')[0] + station_char
 
-            # DEBUG FILE LINE
-            debug_table.append([station, start_push_int, stop_push_int, start_push, stop_push])
-            push_counter += 1
+        # DEBUG FILE LINE
+        debug_table.append([station, start_push_int, stop_push_int, start_push, stop_push])
+        push_counter += 1
 
-            file_name = os.path.basename(file)
+        file_name = os.path.basename(file)
 
-            # Calculate velocity vector for MIDAS ECM
-            if currentmeter_model == 1:
-                df['Speed'] = np.hypot(df['Velocity Y'].loc[start_push:stop_push], df['Velocity X'].loc[start_push:stop_push])
+        # Calculate velocity vector for MIDAS ECM
+        if currentmeter_model == 1:
+            df['Speed'] = np.hypot(df['Velocity Y'].loc[start_push:stop_push], df['Velocity X'].loc[start_push:stop_push])
 
-            depth = int(round(np.mean(df['Depth'].loc[start_push:stop_push]), 0))      # Mean depth
-            temp_c = round(np.mean(df['Temperature'].loc[start_push:stop_push]), 1)    # Mean temperature
-            avg_spe = round(df['Speed'].loc[start_push:stop_push].mean(), 2)           # Avg. speed
-            avg_dir = round(np.rad2deg(circmean(np.deg2rad(df['Direction'].loc[start_push:stop_push]))), 1)    # Mean direction
-            sv = round(np.mean(df['Sound Velocity'].loc[start_push:stop_push]), 1)                             # Mean sv
+        depth = int(round(np.mean(df['Depth'].loc[start_push:stop_push]), 0))      # Mean depth
+        temp_c = round(np.mean(df['Temperature'].loc[start_push:stop_push]), 1)    # Mean temperature
+        avg_spe = round(df['Speed'].loc[start_push:stop_push].mean(), 2)           # Avg. speed
+        avg_dir = round(np.rad2deg(circmean(np.deg2rad(df['Direction'].loc[start_push:stop_push]))), 1)    # Mean direction
+        sv = round(np.mean(df['Sound Velocity'].loc[start_push:stop_push]), 1)                             # Mean sv
 
-            # VALUES FOR PLOT
-            avg_dir_plot = circmean(np.deg2rad(df['Direction'].loc[start_push:stop_push]))
-            avg_spe_plot = df['Speed'].loc[start_push:stop_push].mean()
-            std_dir = circstd(np.deg2rad(df['Direction'].loc[start_push:stop_push]))
+        # VALUES FOR PLOT
+        avg_dir_plot = circmean(np.deg2rad(df['Direction'].loc[start_push:stop_push]))
+        avg_spe_plot = df['Speed'].loc[start_push:stop_push].mean()
+        std_dir = circstd(np.deg2rad(df['Direction'].loc[start_push:stop_push]))
 
-            # DATE/TIME for .csv
-            date = df['Date/Time'].dt.date.loc[start_push]
-            time = df['Date/Time'].dt.time.loc[start_push]
+        # DATE/TIME for .csv
+        date = df['Date/Time'].dt.date.loc[start_push]
+        time = df['Date/Time'].dt.time.loc[start_push]
 
-            # VALUES FOR .csv
-            summary_table.append([station, file_name, date, time, depth, temp_c, avg_spe, avg_dir, sv])
+        # VALUES FOR .csv
+        summary_table.append([station, file_name, date, time, depth, temp_c, avg_spe, avg_dir, sv])
 
-            # SET POLAR PLOT
-            fig = plt.figure(figsize=(8, 8))
-            ax = fig.add_subplot(111, projection='polar')
-            ax.set_theta_direction('clockwise')
-            ax.set_theta_offset(0.5 * np.pi)
+        # SET POLAR PLOT
+        fig = plt.figure(figsize=(8, 8))
+        ax = fig.add_subplot(111, projection='polar')
+        ax.set_theta_direction('clockwise')
+        ax.set_theta_offset(0.5 * np.pi)
 
-            x = np.deg2rad(df['Direction'].loc[start_push:stop_push])
-            y = df['Speed'].loc[start_push:stop_push]
+        x = np.deg2rad(df['Direction'].loc[start_push:stop_push])
+        y = df['Speed'].loc[start_push:stop_push]
 
-            ax.scatter(x, y, c='red')       # todo add color scale for points for comparability
-            ax.bar(avg_dir_plot, avg_spe_plot, width=std_dir, bottom=0.0, alpha=0.5, color='red')
+        ax.scatter(x, y, c='red')       # todo add color scale for points for comparability
+        ax.bar(avg_dir_plot, avg_spe_plot, width=std_dir, bottom=0.0, alpha=0.5, color='red')
 
-            degreechar = u'\N{DEGREE SIGN}'
-            ax.set_xlabel('Direction [%s]' % degreechar)
-            ax.set_ylabel('Current speed [m/s]')
-            ax.yaxis.labelpad = 35
+        degreechar = u'\N{DEGREE SIGN}'
+        ax.set_xlabel('Direction [%s]' % degreechar)
+        ax.set_ylabel('Current speed [m/s]')
+        ax.yaxis.labelpad = 35
 
-            plt.suptitle(station)
-            ax.set_title('Mean direction: %.0f%s Mean velocity: %.2f m/s Std. dev: %.2f%s' % (
-                avg_dir, degreechar, avg_spe, np.rad2deg(std_dir), degreechar))
-            plt.tight_layout()
-            plot_save = os.path.join(out_dir, station + '.png')
-            plt.savefig(plot_save)
-            # plt.show()
+        plt.suptitle(station)
+        ax.set_title('Mean direction: %.0f%s Mean velocity: %.2f m/s Std. dev: %.2f%s' % (
+            avg_dir, degreechar, avg_spe, np.rad2deg(std_dir), degreechar))
+        plt.tight_layout()
+        plot_save = os.path.join(out_dir, station + '.png')
+        plt.savefig(plot_save)
+        # plt.show()
 
-            # OUTPUT
-            print('-' * 69)
-            print('Station:\t\t%s' % station)
-            print('Date/Time:\t\t%s %s' % (date, time))
-            print('Mean direction:\t%.0f%s' % (avg_dir, degreechar))
-            print('Mean velocity:\t%.2f m/s' % avg_spe)
-            print('Std. dev:\t\t%.2f%s' % (np.rad2deg(std_dir), degreechar))
+        # OUTPUT
+        print('-' * 69)
+        print('Station:\t\t%s' % station)
+        print('Date/Time:\t\t%s %s' % (date, time))
+        print('Mean direction:\t%.0f%s' % (avg_dir, degreechar))
+        print('Mean velocity:\t%.2f m/s' % avg_spe)
+        print('Std. dev:\t\t%.2f%s' % (np.rad2deg(std_dir), degreechar))
 
     # DEBUG PLOT
     # todo fix plot and export
@@ -211,20 +210,19 @@ for file in f:
     colors = plt.cm.tab10(np.linspace(0, 1, len(df_pushes)))
 
     for name, group in df_pushes:
-        if len(group) >= min_push_length:
-            if len(df_pushes.groups) > 1 and push_counter > 0:      # todo station name generation as function
-                station_char = ascii_uppercase[push_counter - 1]
-            station = os.path.basename(file).split('.')[0] + station_char
+        if len(df_pushes.groups) > 1 and push_counter > 0:      # todo station name generation as function
+            station_char = ascii_uppercase[push_counter - 1]
+        station = os.path.basename(file).split('.')[0] + station_char
 
-            ax.fill_between(group['Date/Time'], group['Depth'], 0, color=colors[push_counter])
-            annotation_x = group['Date/Time'].index.max() - \
-                           (pd.Timedelta(group['Date/Time'].index.max() - group['Date/Time'].index.min()) / 2)
-            annotation_y = (group['Depth'].max() / 2)
+        ax.fill_between(group['Date/Time'], group['Depth'], 0, color=colors[push_counter])
+        annotation_x = group['Date/Time'].index.max() - \
+                       (pd.Timedelta(group['Date/Time'].index.max() - group['Date/Time'].index.min()) / 2)
+        annotation_y = (group['Depth'].max() / 2)
 
-            ax.annotate(station, xy=(annotation_x, annotation_y), ha='center', color='white')
-            push_counter += 1
-            # todo add lines and squares for cut off
-            # todo add grid lines
+        ax.annotate(station, xy=(annotation_x, annotation_y), ha='center', color='white')
+        push_counter += 1
+        # todo add lines and squares for cut off
+        # todo add grid lines
 
     # Y AXIS
     ax.set_ylabel('Depth [m]')
