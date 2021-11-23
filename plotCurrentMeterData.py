@@ -3,26 +3,7 @@
         Date of creation/change: 2021-11-17
         Version: 0.4
         contact editor(s): nilshemme@hotmail.com
-
 ***************************************************************************/
-INPUT:
-    - .dat/.vpd files from currentmeters, in_dir can have subfolders for stations
-OUTPUT:
-    .png files for each station and .csv summary for ASN reports
-
-This script takes currentmeter files and plots them. It also generates a summary .csv table which can be used for
-reporting.
-
-User has to manually define station names and depth ranges for each station (as start and stop line numbers in raw file)
-i.e.: 'S1-FG-CP01':     {'file': 'CPT_01.dat', 'start_line': 69, 'stop_line': 420},
-(Please note: For Midas ECM use true line number in raw file, header will be subtracted by script)
-
-todo add and update instructions
-
-User has to manually choose from which currentmeter model recorded the raw files
-Currently supported:
-- Nortek Aquadopp
-- Midas ECM
 """
 
 import os
@@ -35,7 +16,7 @@ import numpy as np
 from scipy.stats import circmean, circstd
 
 # USER INPUT
-in_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\2AF East KWI02'
+in_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\tester'
 out_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out'
 
 projectname = '2AFRICA FAW'  # name of your project for output i.e. 2AF East E14 B01.csv
@@ -47,8 +28,8 @@ if currentmeter_model == 0:
     max_depth_delta = 5             # values shallower than maximum depth of file by this value will be used
     max_depth_noise = 1          # cutoff value for noise in depth on seabed
 elif currentmeter_model == 1:
-    max_depth_delta = 1
-    max_depth_noise = 0.5
+    max_depth_delta = 0.3
+    max_depth_noise = 0.05
 # CUT OF VALUES (in [s])
 min_push_duration = 60            # min time in seconds on seabed to count as individual push
 
@@ -232,20 +213,19 @@ for file in f:
 
         ax.annotate(station, xy=(annotation_x, annotation_y), ha='center', color='white')
         push_counter += 1
-        # todo add lines and squares for cut off
         # todo add grid lines
 
     # Y AXIS
+    ax.yaxis.grid(True, which='Major', linestyle='--')
     ax.set_ylabel('Depth [m]')
     ax2.set_ylabel('%s Depth [m]' % u'\u0394')      # delta char
 
     # X AXIS
+    ax.xaxis.grid(True, which='Major', linestyle='--')
     dateformat = mdates.DateFormatter('%d.%m.%Y\n%H:%M:%S')
     ax.invert_yaxis()
     ax.xaxis.set_major_formatter(dateformat)
     ax2.xaxis.set_major_formatter(dateformat)
-    # ax.set_xlabel('Time Day HH:MM:SS')
-    # fig.autofmt_xdate()       # auto rotate label
 
     plt.suptitle('%s' % file)
     plot_save = os.path.join(out_dir, station + '_data.png')
