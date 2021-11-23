@@ -35,17 +35,22 @@ import numpy as np
 from scipy.stats import circmean, circstd
 
 # USER INPUT
-in_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\tester'
+in_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\2AF East KWI02'
 out_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out'
 
 projectname = '2AFRICA FAW'  # name of your project for output i.e. 2AF East E14 B01.csv
 currentmeter_model = 1          # 0 = Nortek Aquadopp, 1 = Midas ECM
 
 # CUT OFF VALUES (in [m])
-max_depth_delta = 3             # values shallower than maximum depth of file by this value will be used
-max_depth_noise = 0.05          # cutoff value for noise in depth on seabed
+# Good values: Midas ECM: 0.3 / 0.05, Nortek Auqadopp: 5/1
+if currentmeter_model == 0:
+    max_depth_delta = 5             # values shallower than maximum depth of file by this value will be used
+    max_depth_noise = 1          # cutoff value for noise in depth on seabed
+elif currentmeter_model == 1:
+    max_depth_delta = 1
+    max_depth_noise = 0.5
 # CUT OF VALUES (in [s])
-min_push_length = 60            # min time in seconds on seabed to count as individual push
+min_push_duration = 60            # min time in seconds on seabed to count as individual push
 
 # todo add debug mode
 # debug_file = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out\2AF East KWI02_debug table.csv'
@@ -113,76 +118,79 @@ for file in f:
     for name, group in df_pushes:                           # todo break if more then 27 pushes
         start_push = group['Date/Time'].iloc[0]
         stop_push = group['Date/Time'].iloc[-1]
+        duration_push = pd.to_timedelta(stop_push - start_push).total_seconds()
+        if duration_push > min_push_duration:      # in seconds
 
-        # GET RAW FILE LINE NUMBER
-        start_push_int = df.index.get_loc(start_push) + (line_offset + 1)   # todo test for Nortek
-        stop_push_int = df.index.get_loc(stop_push) + (line_offset + 1)
+            # GET RAW FILE LINE NUMBER
+            start_push_int = df.index.get_loc(start_push) + (line_offset + 1)   # todo test for Nortek
+            stop_push_int = df.index.get_loc(stop_push) + (line_offset + 1)
 
-        # GET STATION NAME
-        if len(df_pushes.groups) > 1 and push_counter > 0:
-            station_char = ascii_uppercase[push_counter - 1]
-        station = os.path.basename(file).split('.')[0] + station_char
+            # GET STATION NAME
+            if len(df_pushes.groups) > 1 and push_counter > 0:
+                station_char = ascii_uppercase[push_counter - 1]
+            station = os.path.basename(file).split('.')[0] + station_char
 
-        # DEBUG FILE LINE
-        debug_table.append([station, start_push_int, stop_push_int, start_push, stop_push])
-        push_counter += 1
+            # DEBUG FILE LINE
+            debug_table.append([station, start_push_int, stop_push_int, start_push, stop_push])
+            push_counter += 1
 
-        file_name = os.path.basename(file)
+            file_name = os.path.basename(file)
 
-        # Calculate velocity vector for MIDAS ECM
-        if currentmeter_model == 1:
-            df['Speed'] = np.hypot(df['Velocity Y'].loc[start_push:stop_push], df['Velocity X'].loc[start_push:stop_push])
+            # Calculate velocity vector for MIDAS ECM
+            if currentmeter_model == 1:
+                df['Speed'] = np.hypot(df['Velocity Y'].loc[start_push:stop_push], df['Velocity X'].loc[start_push:stop_push])
 
-        depth = int(round(np.mean(df['Depth'].loc[start_push:stop_push]), 0))      # Mean depth
-        temp_c = round(np.mean(df['Temperature'].loc[start_push:stop_push]), 1)    # Mean temperature
-        avg_spe = round(df['Speed'].loc[start_push:stop_push].mean(), 2)           # Avg. speed
-        avg_dir = round(np.rad2deg(circmean(np.deg2rad(df['Direction'].loc[start_push:stop_push]))), 1)    # Mean direction
-        sv = round(np.mean(df['Sound Velocity'].loc[start_push:stop_push]), 1)                             # Mean sv
+            depth = int(round(np.mean(df['Depth'].loc[start_push:stop_push]), 0))      # Mean depth
+            temp_c = round(np.mean(df['Temperature'].loc[start_push:stop_push]), 1)    # Mean temperature
+            avg_spe = round(df['Speed'].loc[start_push:stop_push].mean(), 2)           # Avg. speed
+            avg_dir = round(np.rad2deg(circmean(np.deg2rad(df['Direction'].loc[start_push:stop_push]))), 1)    # Mean direction
+            sv = round(np.mean(df['Sound Velocity'].loc[start_push:stop_push]), 1)                             # Mean sv
 
-        # VALUES FOR PLOT
-        avg_dir_plot = circmean(np.deg2rad(df['Direction'].loc[start_push:stop_push]))
-        avg_spe_plot = df['Speed'].loc[start_push:stop_push].mean()
-        std_dir = circstd(np.deg2rad(df['Direction'].loc[start_push:stop_push]))
+            # VALUES FOR PLOT
+            avg_dir_plot = circmean(np.deg2rad(df['Direction'].loc[start_push:stop_push]))
+            avg_spe_plot = df['Speed'].loc[start_push:stop_push].mean()
+            std_dir = circstd(np.deg2rad(df['Direction'].loc[start_push:stop_push]))
 
-        # DATE/TIME for .csv
-        date = df['Date/Time'].dt.date.loc[start_push]
-        time = df['Date/Time'].dt.time.loc[start_push]
+            # DATE/TIME for .csv
+            date = df['Date/Time'].dt.date.loc[start_push]
+            time = df['Date/Time'].dt.time.loc[start_push]
 
-        # VALUES FOR .csv
-        summary_table.append([station, file_name, date, time, depth, temp_c, avg_spe, avg_dir, sv])
+            # VALUES FOR .csv
+            summary_table.append([station, file_name, date, time, depth, temp_c, avg_spe, avg_dir, sv])
 
-        # SET POLAR PLOT
-        fig = plt.figure(figsize=(8, 8))
-        ax = fig.add_subplot(111, projection='polar')
-        ax.set_theta_direction('clockwise')
-        ax.set_theta_offset(0.5 * np.pi)
+            # SET POLAR PLOT
+            fig = plt.figure(figsize=(8, 8))
+            ax = fig.add_subplot(111, projection='polar')
+            ax.set_theta_direction('clockwise')
+            ax.set_theta_offset(0.5 * np.pi)
 
-        x = np.deg2rad(df['Direction'].loc[start_push:stop_push])
-        y = df['Speed'].loc[start_push:stop_push]
+            x = np.deg2rad(df['Direction'].loc[start_push:stop_push])
+            y = df['Speed'].loc[start_push:stop_push]
 
-        ax.scatter(x, y, c='red')       # todo add color scale for points for comparability
-        ax.bar(avg_dir_plot, avg_spe_plot, width=std_dir, bottom=0.0, alpha=0.5, color='red')
+            ax.scatter(x, y, c='red')       # todo add color scale for points for comparability
+            ax.bar(avg_dir_plot, avg_spe_plot, width=std_dir, bottom=0.0, alpha=0.5, color='red')
 
-        degreechar = u'\N{DEGREE SIGN}'
-        ax.set_xlabel('Direction [%s]' % degreechar)
-        ax.set_ylabel('Current speed [m/s]')
-        ax.yaxis.labelpad = 35
+            degreechar = u'\N{DEGREE SIGN}'
+            ax.set_xlabel('Direction [%s]' % degreechar)
+            ax.set_ylabel('Current speed [m/s]')
+            ax.yaxis.labelpad = 35
 
-        plt.suptitle(station)
-        ax.set_title('Mean direction: %.0f%s Mean velocity: %.2f m/s Std. dev: %.2f%s' % (
-            avg_dir, degreechar, avg_spe, np.rad2deg(std_dir), degreechar))
-        plt.tight_layout()
-        plot_save = os.path.join(out_dir, station + '.png')
-        plt.savefig(plot_save)
-        # plt.show()
+            plt.suptitle(station)
+            ax.set_title('Mean direction: %.0f%s Mean velocity: %.2f m/s Std. dev: %.2f%s' % (
+                avg_dir, degreechar, avg_spe, np.rad2deg(std_dir), degreechar))
+            plt.tight_layout()
+            plot_save = os.path.join(out_dir, station + '.png')
+            plt.savefig(plot_save)
+            # plt.show()
 
-        # OUTPUT
-        print('-' * 69)
-        print('Station:\t\t%s' % station)
-        print('Date/Time:\t\t%s %s' % (date, time))
-        print('Mean direction:\t%.0f%s' % (avg_dir, degreechar))
-        print('Mean velocity:\t%.2f m/s' % avg_spe)
-        print('Std. dev:\t\t%.2f%s' % (np.rad2deg(std_dir), degreechar))
+            # OUTPUT
+            print('-' * 69)
+            print('Station:\t\t%s' % station)
+            print('Date/Time:\t\t%s %s' % (date, time))
+            print('Mean direction:\t%.0f%s' % (avg_dir, degreechar))
+            print('Mean velocity:\t%.2f m/s' % avg_spe)
+            print('Std. dev:\t\t%.2f%s' % (np.rad2deg(std_dir), degreechar))
+            print('Duration: \t\t%.1f s' % duration_push)
 
     # DEBUG PLOT
     # todo fix plot and export
@@ -232,6 +240,7 @@ for file in f:
     dateformat = mdates.DateFormatter('%d.%m.%Y\n%H:%M:%S')
     ax.invert_yaxis()
     ax.xaxis.set_major_formatter(dateformat)
+    ax2.xaxis.set_major_formatter(dateformat)
     # ax.set_xlabel('Time Day HH:MM:SS')
     # fig.autofmt_xdate()       # auto rotate label
 
