@@ -1,17 +1,22 @@
-# Plot-current-meter-
+# Plot current meter
 
-PLOT CURRENT METER
+## Overview
 
-This script takes current meter raw files and creates rose plots for each station them. It also generates a summary .csv table which can be used for
+This script takes raw files from a current meter and creates rose plots for each station them. It also generates a summary .csv table which can be used for
 reporting.
 
-This was created to plot data from current meters that are attached to a CPT during cable route surveys.
+This script was created to plot data from current meters that are attached to a CPT during cable route surveys.
 
-User has to manually define station names and depth ranges for each station (as start and stop line numbers in raw file)
-i.e.: 'S1-FG-CP01':     {'file': 'CPT_01.dat', 'start_line': 69, 'stop_line': 420},
-(Please note: For Midas ECM use true line number in raw file, header will be subtracted by script)
+## Work instruction
+To easily identify the plots make sure the raw files are named like the CPT stations (2EU-Y-CP01).
 
-User has to manually choose from which currentmeter model recorded the raw files
-Currently supported:
-- Nortek Aquadopp
-- Midas ECM
+User has to manually add a **path to a input folder** (in_dir) with current meter raw data, add a **project output name** (projectname) for the summary .csv 
+(i.e. 2EUROPA E13 S12.csv), a **path to a output folder** (out_dir) and choose the **model of the curent meter** (currentmeter_modell) used.
+
+Currently supported current meter models:
+- Nortek Aquadopp   (currentmeter_model = 0)
+- Midas ECM         (currentmeter_model = 1)
+
+The script will then try to find where the CPT was on the seabed for each individual push. If multiple pushes have been made, 
+the script will add a letter to the station name, to match the CPT push (i.e. 2EU-Y-CP01A, 2EU-Y-CP01B ...)
+
