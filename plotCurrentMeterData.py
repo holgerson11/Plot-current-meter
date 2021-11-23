@@ -52,7 +52,10 @@ elif currentmeter_model == 1:
 # CUT OF VALUES (in [s])
 min_push_duration = 60            # min time in seconds on seabed to count as individual push
 
+max_current_speed = 1.0       # max current speed in m/s, adjust to scale colorbar
+
 # todo add debug mode
+# todo add debug folder
 # debug_file = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out\2AF East KWI02_debug table.csv'
 
 # GET FILES
@@ -122,7 +125,7 @@ for file in f:
         if duration_push > min_push_duration:      # in seconds
 
             # GET RAW FILE LINE NUMBER
-            start_push_int = df.index.get_loc(start_push) + (line_offset + 1)   # todo test for Nortek
+            start_push_int = df.index.get_loc(start_push) + (line_offset + 1)
             stop_push_int = df.index.get_loc(stop_push) + (line_offset + 1)
 
             # GET STATION NAME
@@ -167,7 +170,7 @@ for file in f:
             x = np.deg2rad(df['Direction'].loc[start_push:stop_push])
             y = df['Speed'].loc[start_push:stop_push]
 
-            ax.scatter(x, y, c='red')       # todo add color scale for points for comparability
+            ax.scatter(x, y, c=y, vmin=0, vmax=max_current_speed, cmap='RdYlBu')
             ax.bar(avg_dir_plot, avg_spe_plot, width=std_dir, bottom=0.0, alpha=0.5, color='red')
 
             degreechar = u'\N{DEGREE SIGN}'
