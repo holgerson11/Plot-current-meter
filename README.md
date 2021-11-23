@@ -20,3 +20,8 @@ Currently supported current meter models:
 The script will then try to find where the CPT was on the seabed for each individual push. If multiple pushes have been made, 
 the script will add a letter to the station name, to match the CPT push (i.e. 2EU-Y-CP01A, 2EU-Y-CP01B ...)
 
+## Dependencies
+- pandas
+- matplotlib
+- numpy
+- scipy
