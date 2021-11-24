@@ -23,18 +23,16 @@ The script will then try to find where the CPT was on the seabed for each indivi
 the script will add a letter to the station name, to match the CPT push (i.e. 2EU-Y-CP01A, 2EU-Y-CP01B ...)
 
 ## Output examples
-#### Midas ECM from shallow water (Two CPT pushes)
-![2EU-Y-CP01](https://user-images.githubusercontent.com/10484392/143293370-374c8070-19ee-44be-a799-78335363a776.png)
+### Midas ECM from shallow water (Two CPT pushes)
+![Rose plot example](https://user-images.githubusercontent.com/10484392/143293370-374c8070-19ee-44be-a799-78335363a776.png)
+![Rose plot example](https://user-images.githubusercontent.com/10484392/143293664-0f00c9de-8439-43f6-bbfd-5f87841fb2d5.png)
+### Debug plot
+![Debug plot example](https://user-images.githubusercontent.com/10484392/143293701-f05e7b5e-22c0-40ff-855f-4ec6057100ea.png)
 
-![Rose plot example](https://github.com/holgerson11/Plot-current-meter/blob/master/Figures/2EU-Y-CP01.png)
-![Rose plot example](https://github.com/holgerson11/Plot-current-meter/blob/master/Figures/2EU-Y-CP01A.png?raw=true)
-#### Debug plot
-![Debug plot example](https://github.com/holgerson11/Plot-current-meter/blob/master/Figures/2EU-Y-CP01_debug.png?raw=true)
-
-#### Nortek Aquadopp from deep water
-![Rose plot example](https://github.com/holgerson11/Plot-current-meter/blob/master/Figures/ABC-Z-CP01.png?raw=true)
-#### Debug plot
-![Debug plot example](https://github.com/holgerson11/Plot-current-meter/blob/master/Figures/ABC-Z-CP01_debug.png?raw=true)
+### Nortek Aquadopp from deep water
+![Rose plot example](https://user-images.githubusercontent.com/10484392/143293827-3ebb034e-2a68-4aff-a76c-02acaff91ba0.png)
+### Debug plot
+![Debug plot example](https://user-images.githubusercontent.com/10484392/143293901-2c435386-5aa8-4503-90e2-3f7681994495.png)
 
 ## Dependencies
 - pandas
