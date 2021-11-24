@@ -193,15 +193,14 @@ for file in f:
 
     # Diff plot
     ax2.plot(df['Date/Time'], df['Diff'], color='green')
-    # todo clean rect plot code
+
     # ADD CUT OFF RECTANGLES
     start = mdates.date2num(df['Date/Time'].index.max())
     end = mdates.date2num(df['Date/Time'].index.min())
-    y = max_depth_noise
     width = end - start
     # x, y, width, height
     rect = patches.Rectangle((start, df['Depth'].max()), width, max_depth_delta * -1, linewidth=1, edgecolor='r', fill=False)
-    rect2 = patches.Rectangle((start, y), width, max_depth_noise * -2, linewidth=1, edgecolor='r', fill=False)
+    rect2 = patches.Rectangle((start, max_depth_noise), width, max_depth_noise * -2, linewidth=1, edgecolor='r', fill=False)
     ax.add_patch(rect)
     ax2.add_patch(rect2)
 
