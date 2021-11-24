@@ -36,9 +36,6 @@ min_push_duration = 60          # min. duration on seabed to count as single pus
 # SCALE
 max_current_speed = 0.3         # max current speed in m/s, adjust to scale colorbar
 ```
-
-![user input code](https://user-images.githubusercontent.com/10484392/143294731-2e445ffd-1939-4aaa-b726-00e381c384d2.png)
-
 Currently supported current meter models:
 - Nortek Aquadopp   (currentmeter_model = 0)
 - Midas ECM         (currentmeter_model = 1)
