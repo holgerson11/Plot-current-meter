@@ -12,6 +12,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.patches as patches
+import matplotlib.gridspec as gridspec
 import numpy as np
 from scipy.stats import circmean, circstd
 
@@ -152,23 +153,23 @@ for file in f:
 
             # SET POLAR PLOT
             fig = plt.figure(figsize=(8, 8))
-            ax = fig.add_subplot(111, projection='polar')
-            ax.set_theta_direction('clockwise')
-            ax.set_theta_offset(0.5 * np.pi)
+            ax1 = fig.add_subplot(111, projection='polar')
+            ax1.set_theta_direction('clockwise')
+            ax1.set_theta_offset(0.5 * np.pi)
 
             x = np.deg2rad(df['Direction'].loc[start_push:stop_push])
             y = df['Speed'].loc[start_push:stop_push]
 
-            ax.scatter(x, y, c=y, vmin=0, vmax=max_current_speed, cmap='RdYlBu')
-            ax.bar(avg_dir_plot, avg_spe_plot, width=std_dir, bottom=0.0, alpha=0.5, color='red')
+            ax1.scatter(x, y, c=y, vmin=0, vmax=max_current_speed, cmap='RdYlBu')
+            ax1.bar(avg_dir_plot, avg_spe_plot, width=std_dir, bottom=0.0, alpha=0.5, color='red')
 
             degreechar = u'\N{DEGREE SIGN}'
-            ax.set_xlabel('Direction [%s]' % degreechar)
-            ax.set_ylabel('Current speed [m/s]')
-            ax.yaxis.labelpad = 35
+            ax1.set_xlabel('Direction [%s]' % degreechar)
+            ax1.set_ylabel('Current speed [m/s]')
+            ax1.yaxis.labelpad = 35
 
             plt.suptitle(station)
-            ax.set_title('Mean direction: %.0f%s Mean velocity: %.2f m/s Std. dev: %.2f%s' % (
+            ax1.set_title('Mean direction: %.0f%s Mean velocity: %.2f m/s Std. dev: %.2f%s' % (
                 avg_dir, degreechar, avg_spe, np.rad2deg(std_dir), degreechar))
             plt.tight_layout()
             plot_save = os.path.join(out_dir, station + '.png')
@@ -187,9 +188,10 @@ for file in f:
     # DEBUG PLOT
     # Depth plot
     fig = plt.figure(figsize=(12, 8))
-    ax = fig.add_subplot(211)       # 2 row x 1 col grid, position 1
-    ax2 = fig.add_subplot(212)      # todo make diff plot smaller
-    ax.plot(df['Date/Time'], df['Depth'])
+    gs = gridspec.GridSpec(3, 3, figure=fig)
+    ax2 = fig.add_subplot(gs[-1, :3])
+    ax1 = fig.add_subplot(gs[:2, :3], sharex=ax2)       # 2 row x 1 col grid, position 1
+    ax1.plot(df['Date/Time'], df['Depth'])
 
     # Diff plot
     ax2.plot(df['Date/Time'], df['Diff'], color='green')
@@ -201,40 +203,41 @@ for file in f:
     # x, y, width, height
     rect = patches.Rectangle((start, df['Depth'].max()), width, max_depth_delta * -1, linewidth=1, edgecolor='r', fill=False)
     rect2 = patches.Rectangle((start, max_depth_noise), width, max_depth_noise * -2, linewidth=1, edgecolor='r', fill=False)
-    ax.add_patch(rect)
+    ax1.add_patch(rect)
     ax2.add_patch(rect2)
 
     push_counter = 0
-    # station_char = ''
     colors = plt.cm.tab10(np.linspace(0, 1, len(df_pushes)))
 
     for name, group in df_pushes:
         stationname_org, station = get_station_name(file, group, push_counter)
 
-        ax.fill_between(group['Date/Time'], group['Depth'], 0, color=colors[push_counter])
+        ax1.fill_between(group['Date/Time'], group['Depth'], 0, color=colors[push_counter])
         annotation_x = group['Date/Time'].index.max() - \
                        (pd.Timedelta(group['Date/Time'].index.max() - group['Date/Time'].index.min()) / 2)
         annotation_y = (group['Depth'].max() / 2)
 
-        ax.annotate(station, xy=(annotation_x, annotation_y), ha='center', color='white')
+        ax1.annotate(station, xy=(annotation_x, annotation_y), ha='center', color='white')
         push_counter += 1
 
     # Y AXIS
-    ax.yaxis.grid(True, which='Major', linestyle='--', alpha=0.5)
-    ax.set_ylabel('Depth [m]')
+    ax1.yaxis.grid(True, which='Major', linestyle='--', alpha=0.5)
+    ax2.yaxis.grid(True, which='Major', linestyle='--', alpha=0.5)
+    ax1.set_ylabel('Depth [m]')
     ax2.set_ylabel('%s Depth [m]' % u'\u0394')      # delta char
+    ax1.invert_yaxis()
 
     # X AXIS
-    ax.xaxis.grid(True, which='Major', linestyle='--', alpha=0.5)
+    ax1.xaxis.grid(True, which='Major', linestyle='--', alpha=0.5)
+    ax2.xaxis.grid(True, which='Major', linestyle='--', alpha=0.5)
     dateformat = mdates.DateFormatter('%d.%m.%Y\n%H:%M:%S')
-    ax.invert_yaxis()
-    ax.xaxis.set_major_formatter(dateformat)
+    plt.setp(ax1.get_xticklabels(), visible=False)
     ax2.xaxis.set_major_formatter(dateformat)
 
     plt.suptitle('%s' % file)
     plot_save = os.path.join(out_dir, stationname_org + '_debug.png')
     plt.tight_layout()
-    plt.savefig(plot_save)      # todo reset stationname // no A, B etc.
+    plt.savefig(plot_save)
     # plt.show()
 
 # EXPORT summary.csv
