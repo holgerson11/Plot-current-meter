@@ -24,6 +24,8 @@ the script will add a letter to the station name, to match the CPT push (i.e. 2E
 
 ## Output examples
 #### Midas ECM from shallow water (Two CPT pushes)
+![2EU-Y-CP01](https://user-images.githubusercontent.com/10484392/143293370-374c8070-19ee-44be-a799-78335363a776.png)
+
 ![Rose plot example](https://github.com/holgerson11/Plot-current-meter/blob/master/Figures/2EU-Y-CP01.png)
 ![Rose plot example](https://github.com/holgerson11/Plot-current-meter/blob/master/Figures/2EU-Y-CP01A.png?raw=true)
 #### Debug plot
