@@ -13,6 +13,8 @@ To easily identify the plots make sure the raw files are named like the CPT stat
 User has to manually add a **path to a input folder** (in_dir) with current meter raw data, add a **project output name** (projectname) for the summary .csv 
 (i.e. 2EUROPA E13 S12.csv), a **path to a output folder** (out_dir) and choose the **model of the curent meter** (currentmeter_modell) used.
 
+![Code of user input example](https://github.com/holgerson11/Plot-current-meter/blob/master/Figures/code_user_input.png?raw=true)
+
 Currently supported current meter models:
 - Nortek Aquadopp   (currentmeter_model = 0)
 - Midas ECM         (currentmeter_model = 1)
