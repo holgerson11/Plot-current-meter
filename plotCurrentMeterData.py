@@ -23,7 +23,7 @@ projectname = '2AFRICA FAW'  # name of your project for output i.e. 2AF East E14
 currentmeter_model = 1          # 0 = Nortek Aquadopp, 1 = Midas ECM
 
 # CUT OFF VALUES (in [m])
-# Good values: Midas ECM: 0.3 / 0.05, Nortek Auqadopp: 5/1
+# Good values: Midas ECM: 0.3 / 0.05, Nortek Auqadopp: 5 / 1
 if currentmeter_model == 0:
     max_depth_delta = 5             # values shallower than maximum depth of file by this value will be used
     max_depth_noise = 1          # cutoff value for noise in depth on seabed
@@ -33,7 +33,17 @@ elif currentmeter_model == 1:
 # CUT OF VALUES (in [s])
 min_push_duration = 60            # min time in seconds on seabed to count as individual push
 
-max_current_speed = 1.0       # max current speed in m/s, adjust to scale colorbar
+max_current_speed = 0.3       # max current speed in m/s, adjust to scale colorbar
+
+
+def get_station_name(filename, groupname, counter):
+    station_char = ''
+    stationname_org = os.path.basename(filename).split('.')[0]
+    stationname = stationname_org
+    if len(group) > 1 and counter > 0:
+        station_char = ascii_uppercase[push_counter - 1]
+        stationname = stationname_org + station_char
+    return stationname_org, stationname
 
 # todo add debug mode
 # todo add debug folder
@@ -97,7 +107,7 @@ for file in f:
     df_pushes = df.where(df['Push'] != 0).groupby('Push')
 
     push_counter = 0
-    station_char = ''
+    # station_char = ''
 
     for name, group in df_pushes:                           # todo break if more then 27 pushes
         start_push = group['Date/Time'].iloc[0]
@@ -110,9 +120,7 @@ for file in f:
             stop_push_int = df.index.get_loc(stop_push) + (line_offset + 1)
 
             # GET STATION NAME
-            if len(df_pushes.groups) > 1 and push_counter > 0:
-                station_char = ascii_uppercase[push_counter - 1]
-            station = os.path.basename(file).split('.')[0] + station_char
+            station_org, station = get_station_name(file, group, push_counter)
 
             # DEBUG FILE LINE
             debug_table.append([station, start_push_int, stop_push_int, start_push, stop_push])
@@ -177,13 +185,13 @@ for file in f:
             print('Duration: \t\t%.1f s' % duration_push)
 
     # DEBUG PLOT
-    # todo fix plot and export
+    # Depth plot
     fig = plt.figure(figsize=(12, 8))
     ax = fig.add_subplot(211)       # 2 row x 1 col grid, position 1
-    ax2 = fig.add_subplot(212)
+    ax2 = fig.add_subplot(212)      # todo make diff plot smaller
     ax.plot(df['Date/Time'], df['Depth'])
-    # ax2 = ax.twinx()
 
+    # Diff plot
     ax2.plot(df['Date/Time'], df['Diff'], color='green')
     # todo clean rect plot code
     # ADD CUT OFF RECTANGLES
@@ -198,13 +206,11 @@ for file in f:
     ax2.add_patch(rect2)
 
     push_counter = 0
-    station_char = ''
+    # station_char = ''
     colors = plt.cm.tab10(np.linspace(0, 1, len(df_pushes)))
 
     for name, group in df_pushes:
-        if len(df_pushes.groups) > 1 and push_counter > 0:      # todo station name generation as function
-            station_char = ascii_uppercase[push_counter - 1]
-        station = os.path.basename(file).split('.')[0] + station_char
+        stationname_org, station = get_station_name(file, group, push_counter)
 
         ax.fill_between(group['Date/Time'], group['Depth'], 0, color=colors[push_counter])
         annotation_x = group['Date/Time'].index.max() - \
@@ -213,22 +219,21 @@ for file in f:
 
         ax.annotate(station, xy=(annotation_x, annotation_y), ha='center', color='white')
         push_counter += 1
-        # todo add grid lines
 
     # Y AXIS
-    ax.yaxis.grid(True, which='Major', linestyle='--')
+    ax.yaxis.grid(True, which='Major', linestyle='--', alpha=0.5)
     ax.set_ylabel('Depth [m]')
     ax2.set_ylabel('%s Depth [m]' % u'\u0394')      # delta char
 
     # X AXIS
-    ax.xaxis.grid(True, which='Major', linestyle='--')
+    ax.xaxis.grid(True, which='Major', linestyle='--', alpha=0.5)
     dateformat = mdates.DateFormatter('%d.%m.%Y\n%H:%M:%S')
     ax.invert_yaxis()
     ax.xaxis.set_major_formatter(dateformat)
     ax2.xaxis.set_major_formatter(dateformat)
 
     plt.suptitle('%s' % file)
-    plot_save = os.path.join(out_dir, station + '_data.png')
+    plot_save = os.path.join(out_dir, stationname_org + '_debug.png')
     plt.tight_layout()
     plt.savefig(plot_save)      # todo reset stationname // no A, B etc.
     # plt.show()
