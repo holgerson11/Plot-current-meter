@@ -1,7 +1,7 @@
 """
 ***************************************************************************
-        Date of creation/change: 2021-11-17
-        Version: 0.4
+        Date of creation/change: 2021-11-24
+        Version: 0.5
         contact editor(s): nilshemme@hotmail.com
 ***************************************************************************/
 """
@@ -17,24 +17,26 @@ import numpy as np
 from scipy.stats import circmean, circstd
 
 # USER INPUT
-in_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\in\tester'
-out_dir = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out'
+in_dir  = r'E:\Project\current meter raw data'
+out_dir = r'E:\Project\current meter raw data\output'
 
-projectname = '2AFRICA FAW'  # name of your project for output i.e. 2AF East E14 B01.csv
-currentmeter_model = 1          # 0 = Nortek Aquadopp, 1 = Midas ECM
+projectname = '2EUROPA E13 B12'  # name of your project for output i.e. 2AF East E14 B01.csv
+currentmeter_model = 1           # 0 = Nortek Aquadopp, 1 = Midas ECM
 
-# CUT OFF VALUES (in [m])
-# Good values: Midas ECM: 0.3 / 0.05, Nortek Auqadopp: 5 / 1
+# CUT-OFF VALUES (in [m])
+# Default values: Midas ECM: 0.3 / 0.05, Nortek Auqadopp: 5 / 1
 if currentmeter_model == 0:
-    max_depth_delta = 5             # values shallower than maximum depth of file by this value will be used
-    max_depth_noise = 1          # cutoff value for noise in depth on seabed
+    max_depth_delta = 5          # cut-off limit from max. depth of raw file
+    max_depth_noise = 1          # cut-off limit for noise in depth
 elif currentmeter_model == 1:
     max_depth_delta = 0.3
     max_depth_noise = 0.05
-# CUT OF VALUES (in [s])
-min_push_duration = 60            # min time in seconds on seabed to count as individual push
 
-max_current_speed = 0.3       # max current speed in m/s, adjust to scale colorbar
+# CUT-OFF VALUES (in [s])
+min_push_duration = 60          # min. duration on seabed to count as single push
+
+# SCALE
+max_current_speed = 0.3         # max current speed in m/s, adjust to scale colorbar
 
 
 def get_station_name(filename, groupname, counter):
@@ -93,7 +95,7 @@ for file in f:
         df['Date/Time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
 
     # Set Date/Time as index
-    df = df.set_index('Date/Time', drop=False)      # keep Date/Time column and use as index
+    df = df.set_index('Date/Time', drop=False)      # use Date/Time column as index and keep
 
     # todo read debug file here for manual start stop change
 
@@ -105,16 +107,15 @@ for file in f:
     df['Push'] = df['ID'].ne(df['ID'].shift(1)).cumsum()                            # add numbers to events
     df['Push'] = np.where(np.isnan(df['OnSeabed']), 0, df['Push'])                  # categorize events
 
-    df_pushes = df.where(df['Push'] != 0).groupby('Push')
+    df_pushes = df.where(df['Push'] != 0).groupby('Push')                           # group by individual push
 
     push_counter = 0
-    # station_char = ''
 
-    for name, group in df_pushes:                           # todo break if more then 27 pushes
+    for name, group in df_pushes:                           # breaks if more then 27 pushes in one raw file
         start_push = group['Date/Time'].iloc[0]
         stop_push = group['Date/Time'].iloc[-1]
         duration_push = pd.to_timedelta(stop_push - start_push).total_seconds()
-        if duration_push > min_push_duration:      # in seconds
+        if duration_push > min_push_duration:               # skip outlier pushes
 
             # GET RAW FILE LINE NUMBER
             start_push_int = df.index.get_loc(start_push) + (line_offset + 1)
@@ -129,10 +130,11 @@ for file in f:
 
             file_name = os.path.basename(file)
 
-            # Calculate velocity vector for MIDAS ECM
+            # Calculate velocity for MIDAS ECM
             if currentmeter_model == 1:
                 df['Speed'] = np.hypot(df['Velocity Y'].loc[start_push:stop_push], df['Velocity X'].loc[start_push:stop_push])
 
+            # VALUES FOR SUMMARY
             depth = int(round(np.mean(df['Depth'].loc[start_push:stop_push]), 0))      # Mean depth
             temp_c = round(np.mean(df['Temperature'].loc[start_push:stop_push]), 1)    # Mean temperature
             avg_spe = round(df['Speed'].loc[start_push:stop_push].mean(), 2)           # Avg. speed
@@ -246,7 +248,7 @@ summary_cols = ['Station Name', 'File No.', 'Date', 'Time', 'Depth', 'Temperatur
 summary = pd.DataFrame(summary_table, index=None, columns=summary_cols)
 summary.to_csv(os.path.join(out_dir, projectname + '.csv'), index=False)
 
-# EXPORT summary.csv
+# EXPORT debug.csv
 debug_cols = ['Station Name', 'Start Line Number', 'Stop Line Number', 'Start push', 'Stop push']
 debug = pd.DataFrame(debug_table, index=None, columns=debug_cols)
 debug.to_csv(os.path.join(out_dir, projectname + '_debug table.csv'), index=False)
