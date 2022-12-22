@@ -7,6 +7,7 @@
 """
 
 import os
+import glob
 from string import ascii_uppercase
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -17,10 +18,10 @@ import numpy as np
 from scipy.stats import circmean, circstd
 
 # USER INPUT
-in_dir  = r'E:\Project\current meter raw data'
-out_dir = r'E:\Project\current meter raw data\output'
+in_dir = r'C:\Users\nilsh\Downloads\test_in'
+out_dir = r'C:\Users\nilsh\Downloads\test_in\out'
 
-projectname = '2EUROPA E13 B12'  # name of your project for output i.e. 2AF East E14 B01.csv
+projectname = 'Test_Marina'  # name of your project for output i.e. 2AF East E14 B01.csv
 currentmeter_model = 1           # 0 = Nortek Aquadopp, 1 = Midas ECM
 
 # CUT-OFF VALUES (in [m])
@@ -44,8 +45,12 @@ def get_station_name(filename, groupname, counter):
     stationname_org = os.path.basename(filename).split('.')[0]
     stationname = stationname_org
     if len(group) > 1 and counter > 0:
-        station_char = ascii_uppercase[push_counter - 1]
+        try:
+            station_char = ascii_uppercase[push_counter - 1]
+        except IndexError:
+            station_char = 'XX'
         stationname = stationname_org + station_char
+
     return stationname_org, stationname
 
 # todo add debug mode
@@ -54,7 +59,7 @@ def get_station_name(filename, groupname, counter):
 
 # GET FILES
 f = []
-os.chdir(in_dir)                # change working dir
+# os.chdir(in_dir)                # change working dir
 for (dirpath, dirnames, filenames) in os.walk(in_dir):
     for file in filenames:
         if file.endswith('.dat') and currentmeter_model == 0:
