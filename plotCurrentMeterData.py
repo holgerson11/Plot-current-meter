@@ -1,13 +1,13 @@
 """
 ***************************************************************************
-        Date of creation/change: 2021-11-24
-        Version: 0.5
-        contact editor(s): nilshemme@hotmail.com
+        Date of creation/change:    2023-01-23
+        Version:                    0.6
+        Contact editor(s):          nilshemme@hotmail.com
+        Documentation: https://github.com/holgerson11/Plot-current-meter
 ***************************************************************************/
 """
 
 import os
-import glob
 from string import ascii_uppercase
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -18,10 +18,10 @@ import numpy as np
 from scipy.stats import circmean, circstd
 
 # USER INPUT
-in_dir = r'C:\Users\nilsh\Downloads\test_in'
-out_dir = r'C:\Users\nilsh\Downloads\test_in\out'
+in_dir = r'C:\test_in'
+out_dir = r'C:\\out'
 
-projectname = 'Test_Marina'  # name of your project for output i.e. 2AF East E14 B01.csv
+projectname = 'Test Project'  # name of your project for output i.e. 2AF East E14 B01.csv
 currentmeter_model = 1           # 0 = Nortek Aquadopp, 1 = Midas ECM
 
 # CUT-OFF VALUES (in [m])
@@ -59,7 +59,6 @@ def get_station_name(filename, groupname, counter):
 
 # GET FILES
 f = []
-# os.chdir(in_dir)                # change working dir
 for (dirpath, dirnames, filenames) in os.walk(in_dir):
     for file in filenames:
         if file.endswith('.dat') and currentmeter_model == 0:
@@ -97,6 +96,9 @@ for file in f:
         df = pd.read_csv(file, delim_whitespace=True, header=None, names=header, skiprows=line_offset)
 
         # DATE/TIME setup
+        print(df['Date'])
+        print()
+        print(df['Time'])
         df['Date/Time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
 
     # Set Date/Time as index

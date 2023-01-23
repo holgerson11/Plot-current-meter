@@ -2,7 +2,7 @@
 
 ## Overview
 
-This script takes raw files from a current meter and creates rose plots for each station them. It also generates a summary .csv table which can be used for
+This script takes raw files from a current meter and creates rose plots for each station. It also generates a summary .csv table which can be used for
 reporting.
 
 This script was created to plot data from current meters that are attached to a CPT during cable route surveys.
