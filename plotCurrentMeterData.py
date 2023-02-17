@@ -55,7 +55,6 @@ def get_station_name(filename, groupname, counter):
 
 # todo add debug mode
 # todo add debug folder
-# debug_file = r'E:\02_Projekte\2Africa East E14\src\plotCurrentMeterData\out\2AF East KWI02_debug table.csv'
 
 # GET FILES
 f = []
